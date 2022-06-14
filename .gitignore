@@ -1,0 +1,7 @@
+data/
+.vscode/
+packaging/
+shocksurvey/shocksurvey.egg-info
+.pytest_cache/
+__pycache__
+config.env
