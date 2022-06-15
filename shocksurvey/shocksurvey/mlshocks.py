@@ -5,7 +5,7 @@ import inspect
 
 import pandas as pd
 
-from . import ENV
+from shocksurvey import ENV
 
 
 class DC:
@@ -62,6 +62,32 @@ def load_data(file_path: str = None) -> pd.DataFrame:
     if file_path is None:
         file_path = ENV.ML_DATA_LOCATION
     data = pd.read_csv(file_path, comment="#")
+    return data
+
+
+def filter_data(
+    data: pd.DataFrame,
+    non_burst: bool = True,
+    missing_data: list = [],
+    missing_value: float = -1e30,
+) -> pd.DataFrame:
+    """Filter the data according to flags
+    IN:
+        data:           The data
+        non_burst:      Remove data that doesn't have an associated burst interval
+        missing_data:   List of columns to filter for missing data.
+                        Removes entire row from data if value in any specified column
+                        is equal to missing_value. E.g. [DC.THBN, DC.MA] removes rows
+                        where theta_bn and mach number contain missing data.
+        missing_value:  Value to use as missing.
+    OUT:
+        data: Filtered data
+    """
+    if non_burst:
+        data = remove_non_burst(data)
+    if len(missing_data) > 0:
+        for key in missing_data:
+            data = data[data[key] != missing_value]
     return data
 
 
