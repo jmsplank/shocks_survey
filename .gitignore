@@ -10,3 +10,4 @@ __pycache__
 # Files
 config.env
 .DS_Store
+*.html
