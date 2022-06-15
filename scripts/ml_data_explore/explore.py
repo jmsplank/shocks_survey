@@ -5,12 +5,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from phdhelper.helpers import override_mpl
-from shocksurvey.mlshocks import (
-    DC,
-    load_data,
-    filter_data,
-)
-from shocksurvey.data_page import multi_plot_html
+from shocksurvey.mlshocks import DC, filter_data, load_data, multi_plot_html
 
 override_mpl.override()
 
