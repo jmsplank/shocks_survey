@@ -1,11 +1,14 @@
-import os
-from datetime import datetime as dt
-from os.path import dirname, join, exists
 import inspect
+import os
+from dataclasses import dataclass
+from datetime import datetime as dt
+from os.path import dirname, exists, join
+from typing import List, Union
 
 import pandas as pd
+from jinja2 import Environment, FileSystemLoader
 
-from shocksurvey import ENV
+from shocksurvey import ENV, gen_timestamp
 
 
 class DC:
@@ -127,5 +130,85 @@ def open_shock_plot(timestamp: str, **kwargs) -> None:
     os.system(f"open {file}")
 
 
-def remove_non_burst(data):
+def remove_non_burst(data: pd.DataFrame) -> pd.DataFrame:
+    """Removes all rows without an associated burst interval."""
     return data[data.burst_start != 0]
+
+
+@dataclass
+class PlotParams:
+    THBN: float  # Theta_bn
+    MA: float  # Mach number
+    filepath: str
+    basename: str
+
+
+def rows_to_html_params(rows: Union[List[pd.Series], pd.DataFrame]) -> List[PlotParams]:
+    """Convert dataframe or list of rows to a list of plotparams objects for use in jinja template.
+    IN:
+        rows:   Either data or e.g. [data.iloc[i], data.iloc[j], ..., data.iloc[z]]
+    OUT:
+        plots:  List of parameterised info for each plot. To be passed to generate_html.
+    """
+    if type(rows) == pd.DataFrame:
+        rows = [rows.iloc[i] for i in range(len(rows))]
+
+    plots = []
+    for row in rows:
+        filepath = get_plot_file(row[DC.TIME])
+        plots.append(
+            PlotParams(
+                THBN=f"{row[DC.THBN]:>4.1f}",
+                MA=f"{row[DC.MA]:>4.1f}",
+                filepath=filepath,
+                basename=os.path.basename(filepath),
+            )
+        )
+    return plots
+
+
+def generate_html(plots: List[PlotParams], timestamp_name: bool = False) -> str:
+    """Generate and save HTML file that displays plots for all selected intervals.
+    IN:
+        plots:          list of parameters from rows_to_html_params
+        timestamp_name: prepend a timestamp with format from gen_timestamp(output_type='files')
+    OUT:
+        filename:       the full path to the created html file.
+    """
+    root = os.path.dirname(os.path.abspath(__file__))
+    # Templates stored in a folder in same dir as mlshocks source
+    dir = os.path.join(root, "data_page")
+    # Initialise jinja
+    env = Environment(loader=FileSystemLoader(dir))
+    template = env.get_template("template_data_page.jinja2")
+
+    filename = "data_page.html"
+    if timestamp_name:
+        filename = f"{gen_timestamp(output_type='files')}_{filename}"
+    filename = os.path.join(ENV.HTML_SAVE_DIR, filename)
+    with open(filename, "w") as file:
+        # Write rendered html to file
+        file.write(
+            template.render(
+                h1=f"Generated {dt.now():%d/%m/%Y} at {dt.now():%H:%M:%S.%f}",
+                plots=plots,
+            )
+        )
+    return filename
+
+
+def multi_plot_html(
+    rows: Union[List[pd.Series], pd.DataFrame], generate_html_kwargs: dict = {}
+) -> None:
+    """Convenience function to auto generate and open list of shocks as HTML.
+    IN:
+        rows:                   Either data or e.g.
+                                [data.iloc[i], data.iloc[j], ..., data.iloc[z]]
+        generate_html_kwargs:   kwargs to pass to generate_html(**)
+                                e.g. timestamp_name
+    OUT:
+        None
+    """
+    plots = rows_to_html_params(rows)
+    html = generate_html(plots, **generate_html_kwargs)
+    os.system(f"open {html}")
