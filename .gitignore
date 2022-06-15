@@ -1,7 +1,12 @@
+# Specific folders
 data/
 .vscode/
-packaging/
 shocksurvey/shocksurvey.egg-info
 .pytest_cache/
+
+# General folder names
 __pycache__
+
+# Files
 config.env
+.DS_Store
