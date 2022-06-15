@@ -1,0 +1,19 @@
+<h1>{{ h1 }}</h1>
+<ul>
+    {% for plot in plots %}
+    <li>
+        <a href="#{{ plot.basename }}">{{ plot.basename }}</a>: THBN: {{ plot.THBN }} | MA: {{ plot.MA }}
+    </li>
+    {% endfor %}
+</ul>
+{% for plot in plots %}
+<h2>
+    <a name="{{ plot.basename }}">{{ plot.basename }}</a>
+</h2>
+theta_bn: {{ plot.THBN }}
+<br />
+mach number: {{ plot.MA }}
+<br />
+<img src="{{ plot.filepath }}" alt="{{ plot.basename }}" width="1008" height="1075" />
+<br />
+{% endfor %}
