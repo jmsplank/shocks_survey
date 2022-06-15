@@ -10,6 +10,7 @@ dotenv.load_dotenv(config_path)
 @dataclass
 class Env:
     ML_DATA_LOCATION: str
+    HTML_SAVE_DIR: str
 
 
 try:
