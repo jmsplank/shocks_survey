@@ -26,7 +26,7 @@ def test_load_data_bad_path():
 
 
 def test_load_data_all_columns_present():
-    assert set(load_data().columns) == set(DC.all_params(DC))
+    assert set(load_data().columns) == set([k for k, _ in SHK.to_dict().items()])
 
 
 def test_get_plot_file_correct_timestamp():
