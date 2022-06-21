@@ -1,11 +1,19 @@
+import os
 from dataclasses import asdict
 from datetime import datetime as dt
 from datetime import timezone
-from os import remove
+from os.path import dirname, join
 
 import pytest
 from freezegun import freeze_time
-from shocksurvey.mlshocks import *
+from shocksurvey import ENV
+from shocksurvey.mlshocks import (
+    SHK,
+    generate_html,
+    get_plot_file,
+    load_data,
+    rows_to_html_params,
+)
 
 
 def test_load_data_no_path():
