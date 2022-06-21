@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import inspect
 import os
 from dataclasses import dataclass
 from datetime import datetime as dt
+from enum import Enum
 from os.path import dirname, exists, join
-from typing import List, Union
+from typing import List, Optional, Union
 
 import pandas as pd
 from jinja2 import Environment, FileSystemLoader
@@ -11,9 +14,7 @@ from jinja2 import Environment, FileSystemLoader
 from shocksurvey import ENV, gen_timestamp
 
 
-class DC:
-    """Data Columns"""
-
+class SHK(str, Enum):
     TIME = "time"
     DIRECTION = "direction"
     BURST_START = "burst_start"
@@ -51,32 +52,19 @@ class DC:
     SC_SEP_MEAN = "sc_sep_mean"
     TQF = "TQF"
 
-    def all_params(self):
-        attrs = inspect.getmembers(self, lambda a: not (inspect.isroutine(a)))
-        attrs = [a for a in attrs if not (a[0].startswith("__"))]
-        return [a[1] for a in attrs]
-
-
-def load_data(file_path: str = None) -> pd.DataFrame:
-    """Loads CSV data file as pandas dataframe.
-    IN:
-        file_path: if None then loaded from config.env
-    """
-    if file_path is None:
-        file_path = ENV.ML_DATA_LOCATION
-    data = pd.read_csv(file_path, comment="#")
-    return data
+    @classmethod
+    def to_dict(cls: type[SHK]) -> dict[str, str]:
+        return {c.value: c.name for c in list(cls)}
 
 
 def filter_data(
-    data: pd.DataFrame,
+    self,
     non_burst: bool = True,
     missing_data: list = [],
     missing_value: float = -1e30,
 ) -> pd.DataFrame:
     """Filter the data according to flags
     IN:
-        data:           The data
         non_burst:      Remove data that doesn't have an associated burst interval
         missing_data:   List of columns to filter for missing data.
                         Removes entire row from data if value in any specified column
@@ -86,11 +74,30 @@ def filter_data(
     OUT:
         data: Filtered data
     """
+    data = self.copy()
     if non_burst:
-        data = remove_non_burst(data)
+        data = data.remove_non_burst()
     if len(missing_data) > 0:
         for key in missing_data:
             data = data[data[key] != missing_value]
+    return data
+
+
+def remove_non_burst(self) -> pd.DataFrame:
+    """Removes all rows without an associated burst interval."""
+    data = self.copy()
+    return data[data.burst_start != 0]
+
+
+def load_data(file_path: Optional[str] = None) -> pd.DataFrame:
+    """Loads CSV data file as pandas dataframe.
+    IN:
+        file_path: if None then loaded from config.env
+    """
+    if file_path is None:
+        file_path = ENV.ML_DATA_LOCATION
+    data = pd.read_csv(file_path, comment="#")
+    # data.rename({v: k for k, v in SHK.to_dict().items()})
     return data
 
 
@@ -124,21 +131,16 @@ def get_plot_file(
     return plot_name
 
 
-def open_shock_plot(timestamp: str, **kwargs) -> None:
+def open_shock_plot(timestamp: float, **kwargs) -> None:
     """Wrapper for get_shock_plot. Opens image file in default viewer"""
     file = get_plot_file(timestamp, **kwargs)
     os.system(f"open {file}")
 
 
-def remove_non_burst(data: pd.DataFrame) -> pd.DataFrame:
-    """Removes all rows without an associated burst interval."""
-    return data[data.burst_start != 0]
-
-
 @dataclass
 class PlotParams:
-    THBN: float  # Theta_bn
-    MA: float  # Mach number
+    THBN: str  # Theta_bn
+    MA: str  # Mach number
     filepath: str
     basename: str
 
@@ -150,16 +152,16 @@ def rows_to_html_params(rows: Union[List[pd.Series], pd.DataFrame]) -> List[Plot
     OUT:
         plots:  List of parameterised info for each plot. To be passed to generate_html.
     """
-    if type(rows) == pd.DataFrame:
+    if isinstance(rows, pd.DataFrame):
         rows = [rows.iloc[i] for i in range(len(rows))]
 
     plots = []
     for row in rows:
-        filepath = get_plot_file(row[DC.TIME])
+        filepath = get_plot_file(row[SHK.TIME])
         plots.append(
             PlotParams(
-                THBN=f"{row[DC.THBN]:>4.1f}",
-                MA=f"{row[DC.MA]:>4.1f}",
+                THBN=f"{row[SHK.THBN]:>4.1f}",
+                MA=f"{row[SHK.MA]:>4.1f}",
                 filepath=filepath,
                 basename=os.path.basename(filepath),
             )
