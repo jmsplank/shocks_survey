@@ -5,12 +5,17 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from phdhelper.helpers import override_mpl
-from shocksurvey.mlshocks import DC, filter_data, load_data, multi_plot_html
+from shocksurvey.mlshocks import load_data, multi_plot_html
 
 override_mpl.override()
 
+# df = pd.DataFrame({"one": [0, 1, 2], "two": [3, 4, 5]})
+# df.one
+
 data = load_data()
-data = filter_data(data, missing_data=[DC.THBN, DC.MA])
+# data = data.filter_data(missing_data=[DC.THBN, DC.MA])
+print(data)
+# data = filter_data(data, missing_data=[DC.THBN, DC.MA])
 
 
 data["ssthBnMA"] = np.sqrt(data.sthBn**2 + data.sMA**2)  # Combined error
@@ -41,5 +46,4 @@ for i in range(5):
         # ax.scatter(row.thBn, row.MA, c="k", s=100, marker="x")
         print(row.name)
 # plt.show()
-
 multi_plot_html(rows)
