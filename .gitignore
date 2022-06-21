@@ -3,6 +3,7 @@ data/
 .vscode/
 shocksurvey/shocksurvey.egg-info
 .pytest_cache/
+htmlcov/
 
 # General folder names
 __pycache__
@@ -11,3 +12,4 @@ __pycache__
 config.env
 .DS_Store
 *.html
+.coverage
