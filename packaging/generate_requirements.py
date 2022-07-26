@@ -1,11 +1,15 @@
 """Generate a requirements.txt automatically using only modules imported in shocksurvey package."""
 import imp
 import os
+import pathlib
 import re
 import warnings
 
 print("-" * 80)
-MODULE_PATH = "/Users/jamesplank/Documents/PHD/shocks_survey/shocksurvey"
+MODULE_PATH = os.path.join(
+    pathlib.Path(__file__).parent.parent.resolve(), "shocksurvey"
+)
+# MODULE_PATH = "/Users/jamesplank/Documents/PHD/shocks_survey/shocksurvey"
 
 EXCLUDED_FILES = ["setup.py", ".pyc"]
 EXCLUDED_MODULES = ["shocksurvey", ""]
@@ -50,7 +54,7 @@ third_party_modules = []
 for mod in modules:
     mod_path = imp.find_module(mod)[1]
     # pip installs to virtualenv called shockstat
-    if ".virtualenvs/shockstat" in mod_path:
+    if "site-packages" in mod_path:
         third_party_modules.append(mod)
 modules = third_party_modules
 
