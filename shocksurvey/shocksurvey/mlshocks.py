@@ -15,6 +15,8 @@ from shocksurvey import ENV, gen_timestamp
 
 
 class SHK(str, Enum):
+    """Holds column names in an auto-completable way."""
+
     TIME = "time"
     DIRECTION = "direction"
     BURST_START = "burst_start"
@@ -76,7 +78,7 @@ def filter_data(
     """
     data = self.copy()
     if non_burst:
-        data = data.remove_non_burst()
+        data = remove_non_burst(data)
     if len(missing_data) > 0:
         for key in missing_data:
             data = data[data[key] != missing_value]

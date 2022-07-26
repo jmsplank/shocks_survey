@@ -1,37 +1,28 @@
-import os
+from __future__ import annotations
 
-import matplotlib.pyplot as plt
+from dataclasses import InitVar
+from dataclasses import asdict
+from dataclasses import asdict as dataclassdict
+from pprint import pprint
+from typing import Any, List
+
 import numpy as np
 import pandas as pd
-import seaborn as sns
 from phdhelper.helpers import override_mpl
-from shocksurvey.mlshocks import load_data, multi_plot_html
+from shocksurvey.mlshocks import SHK, filter_data, load_data
+from shocksurvey.spedas import Shock, download_data_from_timestamp
 
 override_mpl.override()
 
-# df = pd.DataFrame({"one": [0, 1, 2], "two": [3, 4, 5]})
-# df.one
 
 data = load_data()
-# data = data.filter_data(missing_data=[DC.THBN, DC.MA])
-print(data)
-# data = filter_data(data, missing_data=[DC.THBN, DC.MA])
 
-
+data = filter_data(data, missing_data=[SHK.THBN, SHK.MA])
 data["ssthBnMA"] = np.sqrt(data.sthBn**2 + data.sMA**2)  # Combined error
-# sortedData = data.sort_values("ssthBnMA")
-
-# plt.hist(data.ssthBnMA, bins=100)
-
 data = data[data.ssthBnMA <= 5]
 print(f"Combined error > 5 removed:     len {len(data)}")
 
-
-# fig = plt.figure()
-# ax = fig.add_subplot(111)
-# ax.scatter(data.thBn, data.MA, c=data.ssthBnMA)
-
-rows = []
+rows: List[Shock] = []
 for i in range(5):
     i *= 90 / 5
     for j in range(2):
@@ -42,8 +33,13 @@ for i in range(5):
                 (data.thBn >= i) & (data.thBn < i + 90 / 5) & (data.MA >= 10)
             ]
         row = subData.iloc[np.argmin(subData.ssthBnMA)]
-        rows.append(row)
-        # ax.scatter(row.thBn, row.MA, c="k", s=100, marker="x")
-        print(row.name)
-# plt.show()
-multi_plot_html(rows)
+        fpath = download_data_from_timestamp(row[SHK.TIME], no_download=True)
+        shock = Shock(
+            cdf_path=fpath,
+            properties=row,
+        )
+        shock.load_data_from_cdf()
+        rows.append(shock)
+        print(shock)
+        break
+    break
