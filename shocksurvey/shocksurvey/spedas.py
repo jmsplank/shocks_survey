@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import dataclasses
 from contextlib import redirect_stdout
 from dataclasses import InitVar, asdict, dataclass
@@ -5,11 +7,13 @@ from datetime import datetime as dt
 from datetime import timedelta
 from enum import Enum
 from io import StringIO
+from optparse import Option
 from os.path import join
 from pprint import pformat
-from typing import Any, List, Literal, Optional
+from typing import Any, List, Literal, Optional, Union
 
 import cdflib
+import numpy as np
 import pandas as pd
 from pyspedas.mms import mms_load_fgm
 
@@ -23,7 +27,7 @@ def download_data_from_timestamp(
     trange: Optional[List[str]] = None,
     no_download: bool = False,
     verbose: bool = False,
-) -> str:
+) -> List[str]:
     """Downloads cdf data.
     IN:
         timestamp:      The timestamp
@@ -41,12 +45,12 @@ def download_data_from_timestamp(
 
     if experiment == "fgm":
         with redirect_stdout(StringIO()) as stdout:
-            fpath = mms_load_fgm(trange=trange, data_rate="brst", available=True)[0]
+            fpath = mms_load_fgm(trange=trange, data_rate="brst", available=True)
             if not no_download:
                 mms_load_fgm(trange=trange, data_rate="brst", notplot=True)
         if verbose:
             print("\n".join(stdout))
-        return get_mms_folder_path(timestamp, fpath)
+        return [get_mms_folder_path(timestamp, f) for f in fpath]
     else:
         raise NotImplementedError(f"Expreiment '{experiment}' not implemented.")
 
@@ -81,12 +85,18 @@ class CDF_VARS(str, Enum):
 
 @dataclass
 class Shock:
-    cdf_path: str
+    cdf_path: List[str]
     properties: pd.Series
 
     def __post_init__(self):
         self.summary_plot_path = get_plot_file(self[SHK.TIME])
-        self.data = self.load_data_from_cdf()
+        self.data: dict[str, Union[np.ndarray, pd.DataFrame]]
+        if len(self.cdf_path) == 1:
+            self.data = self.load_data_from_cdf(self.cdf_path[0])
+        elif len(self.cdf_path) > 1:
+            self.data = self.merge_cdf()
+        else:
+            raise ValueError("At least one CDF needs to be specified")
 
     def __getitem__(self, item) -> Any:
         if item in self.properties.index:
@@ -106,33 +116,56 @@ class Shock:
         shock_dict = asdict(self)
         return shock_dict
 
-    def load_data_from_cdf(self) -> dict:
+    def merge_cdf(self):
+        datasets = [self.load_data_from_cdf(cdf) for cdf in self.cdf_path]
+        merged = {}
+        # All datasets should have the same variables
+        keys = datasets[0].keys()
+        for k in keys:
+            data = [cdf[k] for cdf in datasets]
+            if all(isinstance(d, np.ndarray) for d in data):
+                merged[k] = np.concatenate(data, axis=0)
+            elif all(isinstance(d, pd.DataFrame) for d in data):
+                merged[k] = pd.concat(data, axis=0)  # type: ignore
+        return merged
 
-        cdf: cdflib.cdfread.CDF = cdflib.CDF(self.cdf_path)  # type: ignore
+    def load_data_from_cdf(
+        self, path: str
+    ) -> dict[str, Union[np.ndarray, pd.DataFrame]]:
+
+        cdf: cdflib.cdfread.CDF = cdflib.CDF(path)  # type: ignore
 
         info: dict[str, Any] = cdf.cdf_info()
         variables = info["zVariables"]
         data = {}
 
-        def create_and_label_frame(var, label=None, time=None):
-            if label is not None and label in variables:
-                label = [s.strip() for s in cdf.varget(label)[0]]
-            var_data = cdf.varget(var)
-            return pd.DataFrame(var_data, columns=label, index=time)
+        def create_and_label_frame(var, label: str, time: np.ndarray) -> pd.DataFrame:
+            if label is None or label not in variables:
+                raise ValueError(f"Supplied label {label} not in the zVariables")
 
-        time = None
-        r_time = None
+            col = [s.strip() for s in cdf.varget(label)[0]]
+            var_data = cdf.varget(var)
+            return pd.DataFrame(var_data, columns=col, index=time)
+
+        time: Optional[np.ndarray] = None
+        r_time: Optional[np.ndarray] = None
         if CDF_VARS.time in variables:
-            time = cdflib.cdfepoch.unixtime(cdf.varget(CDF_VARS.time), to_np=True)
+            time = cdflib.cdfepoch.unixtime(
+                cdf.varget(CDF_VARS.time), to_np=True
+            )  # type:ignore
             data[CDF_VARS.time.name] = time
         if CDF_VARS.r_time in variables:
-            r_time = cdflib.cdfepoch.unixtime(cdf.varget(CDF_VARS.r_time), to_np=True)
+            r_time = cdflib.cdfepoch.unixtime(
+                cdf.varget(CDF_VARS.r_time), to_np=True
+            )  #  type:ignore
             data[CDF_VARS.r_time.name] = r_time
         if CDF_VARS.b_gse in variables:
+            assert time is not None
             data[CDF_VARS.b_gse.name] = create_and_label_frame(
                 CDF_VARS.b_gse, CDF_VARS.label_b_gse, time
             )
         if CDF_VARS.r_gse in variables:
+            assert r_time is not None
             data[CDF_VARS.r_gse.name] = create_and_label_frame(
                 CDF_VARS.r_gse, CDF_VARS.label_r_gse, r_time
             )
