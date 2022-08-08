@@ -38,7 +38,7 @@ for i in range(5):
             cdf_path=fpath,
             properties=row,
         )
-        shock.load_data_from_cdf()
+        # shock.load_data_from_cdf()
         rows.append(shock)
         print(shock)
         break
