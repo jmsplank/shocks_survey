@@ -1,10 +1,14 @@
+from __future__ import annotations
+
 import inspect
 import re
 from dataclasses import dataclass
 from datetime import datetime as dt
+from pathlib import Path
 from typing import Any, Literal, Optional
 
 import dotenv
+import numpy as np
 from pyspedas.mms.mms_config import CONFIG
 
 config_path = "config.env"
@@ -16,6 +20,7 @@ class Env:
     ML_DATA_LOCATION: str
     HTML_SAVE_DIR: str
     MMS_DATA_DIR: str
+    BASENAME: str
 
 
 try:
@@ -47,7 +52,7 @@ def gen_timestamp(
     if output_type == "pretty":
         return f"{time:%d/%m/%Y %H:%M:%S}"
     elif output_type == "files":
-        return f"{time:%Y-%m-%dT%H-%M-%S}"
+        return f"{time:%Y%m%d%H%M%S}"
     elif output_type == "pyspedas":
         return f"{time:%Y-%m-%d/%H:%M:%S}"
 
@@ -63,3 +68,21 @@ def bprint(var: Any) -> None:
         (var_name, var_val) for var_name, var_val in caller_local_vars if var_val is var
     ][0]
     print(f"{' '+caller_var_name[0]+' ':-^80}", caller_var_name[1], "", sep="\n")
+
+
+def gen_filepath(sub_folder: str | Path, name: str) -> Path:
+    base = Path(ENV.BASENAME)
+    folder = base / "data" / sub_folder
+    folder.mkdir(parents=True, exist_ok=True)
+    return folder / name
+
+
+def save_arr_to_data(sub_folder: str | Path, name: str, arr: np.ndarray) -> None:
+    fname = gen_filepath(sub_folder, name)
+    np.save(fname, arr)
+
+
+def load_arr_from_data(sub_folder: str | Path, name: str) -> np.ndarray:
+    fname = gen_filepath(sub_folder, name)
+    data = np.load(fname)
+    return data
