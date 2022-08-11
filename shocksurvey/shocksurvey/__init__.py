@@ -43,10 +43,13 @@ logger.add(
     Path(ENV.BASENAME) / "logs/log.log",
     rotation="50 MB",
     format="<red>[{level}]</red> | {module}/{function} | Msg: <green>{message}</green> @ {time}",
-
 )
 
 CONFIG["local_data_dir"] = ENV.MMS_DATA_DIR
+
+
+def ts_as_dt(timestamp: float) -> dt:
+    return dt.utcfromtimestamp(timestamp)
 
 
 def gen_timestamp(
