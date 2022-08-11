@@ -5,10 +5,12 @@ import re
 from dataclasses import dataclass
 from datetime import datetime as dt
 from pathlib import Path
+from sys import stderr
 from typing import Any, Literal, Optional
 
 import dotenv
 import numpy as np
+from loguru import logger
 from pyspedas.mms.mms_config import CONFIG
 
 config_path = "config.env"
@@ -31,6 +33,18 @@ except TypeError as e:
     err = re.findall(r"'(.*?)'", str(e))[0]  # Find name of parameter
     raise NameError(f"Unable to match environment variable {err} to a parameter in class Env.\nMake sure to add the corresponding property to the Env class in shocksurvey/__init__.")  # fmt: skip
 
+logger.remove(0)
+logger.add(
+    stderr,
+    format="<red>[{level}]</red> | {module}/{function} | Msg: <green>{message}</green> @ {time}",
+    colorize=True,
+)
+logger.add(
+    Path(ENV.BASENAME) / "logs/log.log",
+    rotation="50 MB",
+    format="<red>[{level}]</red> | {module}/{function} | Msg: <green>{message}</green> @ {time}",
+
+)
 
 CONFIG["local_data_dir"] = ENV.MMS_DATA_DIR
 
