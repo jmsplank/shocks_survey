@@ -12,3 +12,8 @@ class SC(str, Enum):
     MMS2 = "mms2"
     MMS3 = "mms3"
     MMS4 = "mms4"
+
+
+class FPI_DTYPES(str, Enum):
+    DIS = "dis-moms"
+    DES = "des-moms"
