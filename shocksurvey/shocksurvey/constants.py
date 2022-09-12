@@ -17,3 +17,8 @@ class SC(str, Enum):
 class FPI_DTYPES(str, Enum):
     DIS = "dis-moms"
     DES = "des-moms"
+
+
+FGM_CADENCE = 1 / 128
+FPI_I_CADENCE = 0.15
+FPI_E_CADENCE = 0.03
