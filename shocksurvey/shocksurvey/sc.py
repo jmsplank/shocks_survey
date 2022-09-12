@@ -21,3 +21,13 @@ class Spacecraft:
             self.fgm = FGM(self.timestamp, self.name)
             self.fgm.update_trange(trange)
         self.fgm.load()
+
+    def add_fpi(self, trange: list[str] | None = None, download: bool = False) -> None:
+        if not trange:
+            self.fpi = FPI(self.timestamp, self.name)
+        else:
+            self.fpi = FPI(self.timestamp, self.name)
+            self.fpi.update_trange(trange)
+        if download:
+            self.fpi.download()
+        self.fpi.load()
