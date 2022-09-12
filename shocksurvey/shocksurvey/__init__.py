@@ -13,7 +13,7 @@ import numpy as np
 from loguru import logger
 from pyspedas.mms.mms_config import CONFIG
 
-config_path = "config.env"
+config_path = "/Users/jamesplank/Documents/PHD/shocks_survey/config.env"
 dotenv.load_dotenv(config_path)
 
 
@@ -36,13 +36,14 @@ except TypeError as e:
 logger.remove(0)
 logger.add(
     stderr,
-    format="<red>[{level}]</red> | {module}/{function} | Msg: <green>{message}</green> @ {time}",
+    format="<level>[{level:^5}]</level> @ {time:YYYY-MM-DD HH:mm:ss.SSS} | {module}/{function} | Msg: <green>{message}</green>",
     colorize=True,
 )
 logger.add(
     Path(ENV.BASENAME) / "logs/log.log",
     rotation="50 MB",
-    format="<red>[{level}]</red> | {module}/{function} | Msg: <green>{message}</green> @ {time}",
+    format="<level>[{level:^5}]</level> @ {time:YYYY-MM-DD HH:mm:ss.SSS} | {module}/{function} | Msg: <green>{message}</green>",
+    level="INFO",
 )
 
 CONFIG["local_data_dir"] = ENV.MMS_DATA_DIR
