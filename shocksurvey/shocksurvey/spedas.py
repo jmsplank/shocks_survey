@@ -7,7 +7,6 @@ from datetime import timedelta
 from enum import Enum
 from functools import partial
 from pathlib import Path
-from tkinter import W
 from typing import Any, Callable, ClassVar, Literal, NamedTuple, Type
 
 import cdflib
@@ -230,7 +229,7 @@ class FPI(CDF):
             cdf.varget(FPI_MOMS.time, to_np=True)
         )
         # Assuming all energy bins are the same
-        ebins = cdf.varget(FPI_MOMS.energybins)
+        ebins: np.ndarray = cdf.varget(FPI_MOMS.energybins)  # type: ignore
         ebins = np.array(ebins[0])  # Collapse to single list
 
         def f(x: FPI_MOMS, spec: Literal["des", "dis"]) -> str:
@@ -240,7 +239,7 @@ class FPI(CDF):
 
         vars = {
             f(FPI_MOMS.tempperp): arr_to_dataarr(
-                cdf.varget(FPI_MOMS.tempperp),
+                cdf.varget(FPI_MOMS.tempperp),  # type: ignore
                 dim_names=["time"],
                 coordinates={"time": time},
                 long_name=f"{species} perpendicular temperature",
@@ -248,7 +247,7 @@ class FPI(CDF):
                 description=f"{species} perpendicular temperature",
             ),
             f(FPI_MOMS.temppara): arr_to_dataarr(
-                cdf.varget(FPI_MOMS.temppara),
+                cdf.varget(FPI_MOMS.temppara),  # type: ignore
                 dim_names=["time"],
                 coordinates={"time": time},
                 long_name=f"{species} parallel temperature",
@@ -256,7 +255,7 @@ class FPI(CDF):
                 description=f"{species} parallel temperature",
             ),
             f(FPI_MOMS.bulkv): arr_to_dataarr(
-                cdf.varget(FPI_MOMS.bulkv),
+                cdf.varget(FPI_MOMS.bulkv),  # type: ignore
                 dim_names=["time", "velocity"],
                 coordinates={"time": time, "velocity": ["vx", "vy", "vz"]},
                 long_name=f"{species} bulk velocity",
@@ -264,7 +263,7 @@ class FPI(CDF):
                 description=f"{species} bulk velocity",
             ),
             f(FPI_MOMS.numberdensity): arr_to_dataarr(
-                cdf.varget(FPI_MOMS.numberdensity),
+                cdf.varget(FPI_MOMS.numberdensity),  # type: ignore
                 dim_names=["time"],
                 coordinates={"time": time},
                 long_name=f"{species} numberdensity",
@@ -272,7 +271,7 @@ class FPI(CDF):
                 description=f"{species} numberdensity",
             ),
             f(FPI_MOMS.energyspectrogram): arr_to_dataarr(
-                cdf.varget(FPI_MOMS.energyspectrogram),
+                cdf.varget(FPI_MOMS.energyspectrogram),  # type: ignore
                 dim_names=["time", "energy"],
                 coordinates={"time": time, "energy": ebins},
                 long_name=f"{species} energy spectrogram",
@@ -327,7 +326,6 @@ class FGM(CDF):
         cdf: cdflib.cdfread.CDF = cdflib.CDF(path)  # type: ignore
         info: dict[str, Any] = cdf.cdf_info()
         variables = info["zVariables"]
-        logger.debug(variables)
 
         class CDF_VARS(str, Enum):
             time = "Epoch"
@@ -348,7 +346,7 @@ class FGM(CDF):
         )
         out = {}
         out["mag"] = arr_to_dataarr(
-            data=cdf.varget(CDF_VARS.b_gse),
+            data=cdf.varget(CDF_VARS.b_gse),  # type: ignore
             dim_names=["time", "b"],
             coordinates={"time": time, "b": ["bx", "by", "bz", "bt"]},
             long_name="FGM GSE",
@@ -356,13 +354,13 @@ class FGM(CDF):
             description="Fluxgate Magnetometer",
         )
         out["rad"] = arr_to_dataarr(
-            data=cdf.varget(CDF_VARS.r_gse),
+            data=cdf.varget(CDF_VARS.r_gse),  # type: ignore
             dim_names=["time", "r"],
             coordinates={"time": r_time, "r": ["x", "y", "z", "rt"]},
             long_name="Radius GSE",
             units="km",
             description="Radius",
-        )
+        ).interp(time=out["mag"].time)
         return xr.Dataset(out)
 
     def load(self) -> None:
