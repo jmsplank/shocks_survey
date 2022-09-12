@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 from datetime import datetime as dt
-from enum import Enum
 from pathlib import Path
-from tkinter import W
+from typing import Literal
 
 import numpy as np
 import pandas as pd
 
-from shocksurvey import ENV, gen_timestamp, ts_as_dt
+from shocksurvey import ENV, gen_timestamp, logger, ts_as_dt
 from shocksurvey.shock import Shock, ShockProperties
 
 COLUMNS = [
@@ -81,3 +80,18 @@ class MLProperties(ShockProperties):
             return gen_timestamp(ts_as_dt(ts), "pyspedas")
 
         return list(map(f, [self.props.burst_start, self.props.burst_end]))
+
+    def norm_prop(
+        self,
+        name_str: Literal["B{}_us", "V{}_us"],
+        components: list[str] = list("xyz"),
+    ) -> float:
+        for i in range(len(components)):
+            components[i] = name_str.replace("{}", components[i])
+        return float(np.linalg.norm([self.props[comp] for comp in components]))
+
+    def norm_v(self) -> float:
+        return self.norm_prop("V{}_us", list("xyz"))
+
+    def norm_b(self) -> float:
+        return self.norm_prop("B{}_us", list("xyz"))
