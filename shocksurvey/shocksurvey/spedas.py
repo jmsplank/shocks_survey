@@ -21,6 +21,39 @@ from shocksurvey import ENV, gen_timestamp, logger
 from shocksurvey.constants import FPI_DTYPES, SC, Instruments
 
 
+def replace_gaps_with_nan(
+    data: xr.DataArray, cadence: float, threshold: int = 100
+) -> xr.DataArray:
+    new_times = np.arange(data.time[0], data.time[-1], cadence)
+
+    # Where are the gaps?
+    time = data.time.values
+    diff_time = np.diff(time)
+    gap_indices = np.nonzero(diff_time > 10 * cadence)[0]
+    gap_times = [
+        (
+            np.argmin(np.abs(new_times - time[i])),
+            np.argmin(np.abs(new_times - time[i + 1])),
+        )
+        for i in gap_indices
+    ]
+    # Locate gaps in new array
+    fn = lambda x: f"{dt.utcfromtimestamp(new_times[x]):%H:%M:%S}"
+    g1 = lambda x, y: abs(new_times[x] - new_times[y])
+    g2 = (
+        lambda x: f"{divmod(x, 3600)[0]:01.0f}h {divmod(divmod(x, 3600)[1],60)[0]:02.0f}m {divmod(divmod(x, 3600)[1],60)[1]:02.2f}s"
+    )
+    logger.debug(
+        "Gaps: " + " ::: ".join([f"{fn(i[0])} for {g2(g1(*i))}" for i in gap_times])
+    )
+    new_times_mask = np.full(len(new_times), True)
+    for gap in gap_times:
+        new_times_mask[slice(*gap)] = False
+
+    new_data = data.interp({"time": new_times})
+    return new_data.where(new_times_mask.reshape((new_times_mask.size, 1)))
+
+
 def get_date_folders(timestamp: float) -> Path:
     t_dt = dt.utcfromtimestamp(timestamp)
     date_folders = f"{t_dt:%Y/%m/%d}"
